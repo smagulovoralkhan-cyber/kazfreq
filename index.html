@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KazFreqBase">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+<title>KazFreqBase — частоты РЧС Казахстана</title>
+</head>
+<body>
+
+<!-- ЭКРАН: ПОИСК -->
+<section id="screen-search" class="screen active">
+  <header class="bar">
+    <div class="searchbox">
+      <span class="ico">🔍</span>
+      <input id="q" type="search" placeholder="Частота, город или область" autocomplete="off" enterkeyhint="search">
+      <button id="q-clear" class="icobtn" hidden>✕</button>
+    </div>
+    <div class="chips">
+      <button id="chip-region" class="chip">Весь Казахстан</button>
+      <button id="chip-city" class="chip">Город</button>
+    </div>
+    <div class="chips">
+      <button id="chip-range" class="chip">Диапазон</button>
+      <button id="chip-reset" class="chip icon-only" hidden>✕</button>
+    </div>
+    <div class="statusline">
+      <span id="status">База не загружена</span>
+      <button id="open-map" class="linkbtn">🗺 На карте</button>
+    </div>
+  </header>
+  <div id="results" class="list"></div>
+</section>
+
+<!-- ЭКРАН: БАЗА -->
+<section id="screen-db" class="screen">
+  <header class="bar"><h1>База данных</h1></header>
+  <div class="pad">
+    <div class="card">
+      <div class="big" id="db-count">0</div>
+      <div class="muted">записей в базе</div>
+    </div>
+    <label class="btn primary">
+      Импорт файлов (.csv)
+      <input id="file-input" type="file" accept=".csv,text/csv" multiple hidden>
+    </label>
+    <button id="btn-clear" class="btn danger">Очистить всю базу</button>
+    <p class="muted small">
+      Загрузите части «РЧС_часть_N_из_8.csv» — можно выбрать все сразу.
+      Повторы отсекаются, порядок не важен. Данные остаются на телефоне.
+    </p>
+    <div id="import-progress" class="progress" hidden>
+      <div class="spinner"></div><span id="import-text">Чтение…</span>
+    </div>
+  </div>
+</section>
+
+<!-- ЭКРАН: ИЗБРАННОЕ -->
+<section id="screen-fav" class="screen">
+  <header class="bar"><h1>Избранное</h1></header>
+  <div id="fav-list" class="list"></div>
+</section>
+
+<!-- ЭКРАН: КАРТА -->
+<section id="screen-map" class="screen">
+  <header class="bar map-bar">
+    <button id="map-back" class="icobtn">‹</button>
+    <div class="map-title">
+      <div id="map-scope">Весь Казахстан</div>
+      <div id="map-sub" class="muted small">Загрузка точек…</div>
+    </div>
+    <button id="map-range" class="icobtn">⚙</button>
+    <button id="map-draw" class="icobtn">✏️</button>
+  </header>
+  <div id="map"></div>
+  <div id="draw-hint" class="hint" hidden>Карандаш: обведите область пальцем</div>
+  <div id="map-cards" class="map-cards"></div>
+</section>
+
+<!-- НИЖНЕЕ МЕНЮ -->
+<nav id="tabs" class="tabs">
+  <button data-screen="search" class="tab active"><span>🔍</span>Поиск</button>
+  <button data-screen="db" class="tab"><span>▤</span>База</button>
+  <button data-screen="fav" class="tab"><span>♥</span>Избранное</button>
+</nav>
+
+<!-- ОКНО: ВЫБОР ИЗ СПИСКА -->
+<div id="picker" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <b id="picker-title">Выбор</b>
+      <button class="icobtn" data-close>✕</button>
+    </div>
+    <input id="picker-search" type="search" placeholder="Начните вводить название">
+    <div id="picker-list" class="picker-list"></div>
+  </div>
+</div>
+
+<!-- ОКНО: ДИАПАЗОН -->
+<div id="range-modal" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <b>Диапазон частот</b>
+      <button class="icobtn" data-close>✕</button>
+    </div>
+    <div class="range-row">
+      <input id="r-from" type="text" inputmode="decimal" placeholder="от">
+      <div class="units" data-for="from">
+        <button class="u" data-u="кГц">кГц</button>
+        <button class="u active" data-u="МГц">МГц</button>
+        <button class="u" data-u="ГГц">ГГц</button>
+      </div>
+    </div>
+    <div class="range-row">
+      <input id="r-to" type="text" inputmode="decimal" placeholder="до">
+      <div class="units" data-for="to">
+        <button class="u" data-u="кГц">кГц</button>
+        <button class="u active" data-u="МГц">МГц</button>
+        <button class="u" data-u="ГГц">ГГц</button>
+      </div>
+    </div>
+    <p class="muted small">
+      Единицы у полей независимы: можно задать «от 10 кГц до 2 ГГц».
+      Достаточно заполнить одно поле.
+    </p>
+    <div class="sheet-actions">
+      <button id="range-reset" class="btn">Сбросить</button>
+      <button id="range-apply" class="btn primary">Применить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ОКНО: КАРТОЧКА ЗАПИСИ -->
+<div id="detail" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <b id="detail-title">Запись</b>
+      <button class="icobtn" data-close>✕</button>
+    </div>
+    <div id="detail-body" class="detail-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="vendor/sql-wasm.js"></script>
+<script src="vendor/leaflet.js"></script>
+<script src="app.js"></script>
+<script src="map.js"></script>
+</body>
+</html>
